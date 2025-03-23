@@ -1,0 +1,17 @@
+{
+  "outDir": "../types",
+  "chainVersions": "polkadotVersions.json",
+  "typesBundle": "polkadot",
+  "events": [
+    "Balances.Transfer",
+    "Referenda.Submitted",
+    "Referenda.Approved",
+    "Referenda.Rejected",
+    "ConvictionVoting.Voted",
+    "Proxy.ProxyAdded",
+    "Proxy.ProxyRemoved",
+    "Multisig.NewMultisig",
+    "Multisig.MultisigExecuted"
+  ],
+  "calls": []
+} 

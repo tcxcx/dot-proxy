@@ -1,0 +1,124 @@
+type Account @entity {
+  "Account address"
+  id: ID!
+  pubKey: String!
+  transfersTo: [Transfer!] @derivedFrom(field: "to")
+  transfersFrom: [Transfer!] @derivedFrom(field: "from")
+  
+  # Multisig related fields
+  isMultisig: Boolean
+  signatories: [AccountMultisig!] @derivedFrom(field: "multisig")
+  threshold: Int
+  multisigsCalls: [MultisigCall!] @derivedFrom(field: "multisig")
+  
+  # Proxy related fields
+  isPureProxy: Boolean
+  delegatorFor: [ProxyAccount!] @derivedFrom(field: "delegator")
+  delegateeFor: [ProxyAccount!] @derivedFrom(field: "delegatee")
+  
+  # Governance participation
+  votesSubmitted: [Vote!] @derivedFrom(field: "voter")
+}
+
+type Transfer @entity {
+  id: ID!
+  blockNumber: Int! @index
+  timestamp: DateTime! @index
+  extrinsicHash: String @index
+  from: Account!
+  to: Account!
+  amount: BigInt! @index
+  fee: BigInt!
+}
+
+# Governance entities
+type Referendum @entity {
+  id: ID!
+  index: Int!
+  track: Int
+  title: String
+  description: String
+  proposer: Account
+  status: ReferendumStatus!
+  submitted: DateTime!
+  depositAmount: BigInt
+  endsAt: DateTime
+  ayeVotes: BigInt
+  nayVotes: BigInt
+  votes: [Vote!] @derivedFrom(field: "referendum")
+  preimageHash: String
+  blockNumber: Int! @index
+  extrinsicHash: String
+}
+
+type Vote @entity {
+  id: ID!
+  referendum: Referendum!
+  voter: Account!
+  isAye: Boolean!
+  conviction: Int!
+  balance: BigInt!
+  timestamp: DateTime!
+  blockNumber: Int! @index
+  extrinsicHash: String
+}
+
+enum ReferendumStatus {
+  Submitted
+  Ongoing
+  Approved
+  Rejected
+  Cancelled
+  TimedOut
+  Executed
+}
+
+# Proxy entities
+enum ProxyType {
+  Any
+  NonTransfer
+  Governance
+  Staking
+  IdentityJudgement
+  CancelProxy
+  Auction
+  Society
+  OnDemandOrdering
+}
+
+type ProxyAccount @entity {
+  id: ID!
+  delegator: Account!
+  delegatee: Account!
+  type: ProxyType!
+  delay: Int!
+  createdAt: DateTime!
+  extrinsicIndex: Int
+  creationBlockNumber: Int
+}
+
+# Multisig entities
+type AccountMultisig @entity {
+  id: ID!
+  multisig: Account!
+  signatory: Account!
+}
+
+type MultisigCall @entity {
+  id: ID!
+  blockHash: String!
+  timestamp: DateTime!
+  multisig: Account!
+  callIndex: Int!
+  status: MultisigCallStatus!
+  callData: String
+  callHash: String
+  extrinsicHash: String
+}
+
+enum MultisigCallStatus {
+  Proposed
+  Approved
+  Executed
+  Cancelled
+} 

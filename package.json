@@ -1,0 +1,68 @@
+{
+  "name": "dot-proxy-gov",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "description": "An interface to easily manage complex proxy wallet connections.",
+  "engines": {
+    "node": ">=16.10"
+  },
+  "packageManager": "bun@1.1.19",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/criptopoeta/dot-proxy-gov"
+  },
+  "keywords": [
+    "polkadot",
+    "multisig"
+  ],
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev:ui": "cd packages/ui && bun run dev",
+    "build:ui": "cd packages/ui && SKIP_TS=1 bun run build",
+    "setup:squid": "cd packages/squid && npm install && npm run codegen && npm run build",
+    "db:migrate": "cd packages/squid && npm run db:migrate",
+    "codegen:squid": "cd packages/squid && npm run codegen",
+    "typegen:squid": "cd packages/squid && npm run typegen",
+    "processor:start": "cd packages/squid && npm run start",
+    "graphql:start": "cd packages/squid && npm run graphql-server",
+    "docker:db": "docker compose up -d db",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "build": "bun run build:ui && cd packages/squid && npm run build",
+    "build:indexer": "cd packages/squid && npm run codegen && npm run typegen && npm run build && npm run db:migrate",
+    "lint": "bun run lint:ui",
+    "lint:ui": "cd packages/ui && bun run lint",
+    "lint:fix": "cd packages/ui && bun run lint -- --fix",
+    "docker:rebuild": "docker compose build --no-cache",
+    "docker:restart": "docker compose down && docker compose up -d",
+    "docker:clean": "docker system prune -a",
+    "docker:rebuild-ui": "docker compose build --no-cache --progress plain ui",
+    "docker:build-and-run": "DOCKER_BUILDKIT=1 docker compose build --progress plain ui && docker compose up -d",
+    "docker:build-nots": "SKIP_TS=1 docker compose build --no-cache --progress plain ui",
+    "formatAll": "prettier --write .",
+    "start:chopsticks-test-build-and-launch-all": "concurrently --kill-others 'npm run start:chopsticks' 'npm run ui:start-with-chopsticks' 'npm run docker:down && npm run docker:db && npm run build:indexer && npm run indexer:start:chopsticks-local' 'npm run start:graphql-server'",
+    "start:chopsticks": "npx --yes @acala-network/chopsticks@1.0.2-1 --config chopsticks-config.yml",
+    "start:graphql-server": "cd squid && npm run start:graphql-server",
+    "indexer:start:chopsticks-ci": "cd squid && npm run start:chopsticks-ci",
+    "indexer:start:chopsticks-local": "cd squid && npm run start:chopsticks-local",
+    "ui:start": "bun workspace ui start",
+    "ui:lint": "bun workspace ui lint",
+    "ui:test": "bun workspace ui test",
+    "ui:start-with-chopsticks": "bun workspace ui start-with-chopsticks"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.3",
+    "prettier": "^3.5.1"
+  },
+  "resolutions": {
+    "graphql": "^16.0.0",
+    "@polkadot/util-crypto": "12.5.1",
+    "@polkadot/util": "12.5.1"
+  }
+}
