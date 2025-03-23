@@ -37,3 +37,7 @@ logs
 
 # TypeScript
 *.tsbuildinfo
+
+# Database files
+data/db/
+data/db/pg_stat_tmp/
