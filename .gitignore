@@ -44,3 +44,12 @@ logs
 
 # TypeScript
 *.tsbuildinfo
+
+# Specific files
+packages/squid/package-lock.json
+
+# Docker files
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.*
