@@ -4,11 +4,12 @@ import { Loader } from "lucide-react";
 
 import { Providers } from "@/providers/providers";
 
-import { fontSans, fontMono } from "@/fonts";
+import { fontSans, fontMono, fontUnbounded } from "@/fonts";
 import Nav from "@/components/layout/nav";
 import Footer from "@/components/layout/footer";
 import { ChainInfo } from "@/components/chain/chain-info";
-
+import { AppLoadingState } from "@/components/app-loading-state";
+import { LoadingProvider } from "@/store/loading-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,15 +28,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontMono.variable} font-[family-name:var(--font-sans)] antialiased`}
+        className={`${fontSans.variable} ${fontMono.variable} ${fontUnbounded.variable} font-[family-name:var(--font-sans)] antialiased custom-scroll`}
       >
+      <LoadingProvider>
         <Providers>
           <Nav />
+          <AppLoadingState />
           {children}
           <Footer />
           <ChainInfo />
           <Toaster position="bottom-center" icons={{ loading: <Loader /> }} />
         </Providers>
+      </LoadingProvider>
       </body>
     </html>
   );
