@@ -11,11 +11,34 @@ export enum ProxyType {
   Staking = 'Staking'
 }
 
+// GraphQL compatible ReferendumStatus enum
+export enum ReferendumStatus {
+  Submitted = 'SUBMITTED',
+  Ongoing = 'ONGOING',
+  Approved = 'APPROVED',
+  Rejected = 'REJECTED',
+  Cancelled = 'CANCELLED',
+  TimedOut = 'TIMEDOUT',
+  Executed = 'EXECUTED'
+}
+
 export interface ProxyAccount {
   address: string;
   name?: string;
   type: ProxyType;
   createdAt?: Date;
+}
+
+// Governance track interface
+export interface GovernanceTrack {
+  id: number;
+  name: string;
+  description?: string;
+  minApproval?: number;
+  minSupport?: number;
+  decisionPeriod?: number;
+  preparePeriod?: number;
+  confirmPeriod?: number;
 }
 
 export interface Referendum {
@@ -28,6 +51,10 @@ export interface Referendum {
   ayes?: string | number | bigint;
   nays?: string | number | bigint;
   votes?: ReferendumVote[];
+  track?: number;
+  trackName?: string;
+  minApproval?: number;
+  minSupport?: number;
 }
 
 export interface ReferendumVote {

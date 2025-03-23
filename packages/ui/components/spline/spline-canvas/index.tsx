@@ -28,7 +28,6 @@ export default function SplineCanvas({ splineUrl, className, onLoaded }: SplineC
       // If rendered and more than 2 seconds have passed since load attempt, consider it ready
       if (renderedRef.current && loadAttemptRef.current > 0 && Date.now() - loadAttemptRef.current > 2000) {
         window.clearInterval(checkReadyIntervalId);
-        console.log("Spline scene ready check completed: Load attempt time + rendered status");
         setIsLoaded(true);
         if (onLoaded) onLoaded();
       }
@@ -41,8 +40,6 @@ export default function SplineCanvas({ splineUrl, className, onLoaded }: SplineC
       // Load the Spline scene
       loadAttemptRef.current = Date.now();
       app.load(splineUrl).then(() => {
-        console.log("Spline scene loaded via Promise");
-        
         // Start checking readiness every 200ms
         checkReadyIntervalId = window.setInterval(checkAndNotifyReady, 200);
         
@@ -50,7 +47,6 @@ export default function SplineCanvas({ splineUrl, className, onLoaded }: SplineC
         timeoutId = window.setTimeout(() => {
           if (!isLoaded) {
             window.clearInterval(checkReadyIntervalId);
-            console.log("Spline scene loaded via timeout failsafe");
             setIsLoaded(true);
             if (onLoaded) onLoaded();
           }
@@ -60,13 +56,11 @@ export default function SplineCanvas({ splineUrl, className, onLoaded }: SplineC
       // Add rendered event listener as a backup loading detection method
       app.addEventListener('rendered', () => {
         renderedRef.current = true;
-        console.log("Spline rendered event triggered");
         
         // Mark as ready after a short delay following render
         if (!isLoaded) {
           timeoutId = window.setTimeout(() => {
             window.clearInterval(checkReadyIntervalId);
-            console.log("Spline scene loaded via render event");
             setIsLoaded(true);
             if (onLoaded) onLoaded();
           }, 800);
@@ -82,8 +76,8 @@ export default function SplineCanvas({ splineUrl, className, onLoaded }: SplineC
       if (appRef.current) {
         try {
           appRef.current.dispose();
-        } catch (e) {
-          console.error("Error disposing Spline app:", e);
+        } catch (_) {
+          // Silently handle disposal errors
         }
       }
     };

@@ -72,13 +72,13 @@ export function TransactionHistory() {
   const getTransactionLabel = (transaction: ProxyTransaction) => {
     switch (transaction.type) {
       case 'create':
-        return `Added governance proxy ${trimAddress(transaction.details.proxyAddress || '')}`;
+        return `Added governance proxy ${trimAddress(transaction.details.proxyAddress!)}`;
       case 'remove':
-        return `Removed governance proxy ${trimAddress(transaction.details.proxyAddress || '')}`;
+        return `Removed governance proxy ${trimAddress(transaction.details.proxyAddress!)}`;
       case 'vote':
         const voteDirection = transaction.details.vote?.aye ? 'Aye' : 'Nay';
         const conviction = transaction.details.vote?.conviction || 0;
-        return `Voted ${voteDirection} with ${conviction}x conviction on referendum #${transaction.details.referendumId}`;
+        return `Voted ${voteDirection} with ${conviction}x conviction on referendum #${transaction.details.referendumId!}`;
       default:
         return 'Unknown transaction';
     }

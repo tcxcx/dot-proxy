@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchGraphQL, QUERIES, formatDate, trimAddress } from "@/lib/utils";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useReferenda, useGovernanceTracks } from "@/hooks";
+import { formatDate, trimAddress } from "@/lib/utils";
+import { ReferendumStatus } from "@/lib/types";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
 // Implement ReferendumCard component directly since it doesn't exist
 function ReferendumCard({ referendum }) {
@@ -18,60 +28,87 @@ function ReferendumCard({ referendum }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle>Referendum #{referendum.index}</CardTitle>
-            <CardDescription className="mt-1">{referendum.title || "No title"}</CardDescription>
+    <Link href={`/referendum/${referendum.index}`}>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Referendum #{referendum.index}</CardTitle>
+              <CardDescription className="mt-1">{referendum.title || "No title"}</CardDescription>
+            </div>
+            <div className="flex flex-col gap-2 text-right">
+              <Badge className={statusColors[referendum.status] || "bg-gray-500"}>
+                {referendum.status}
+              </Badge>
+              {referendum.track !== undefined && (
+                <Badge variant="outline" className="text-xs">
+                  Track {referendum.track}
+                </Badge>
+              )}
+            </div>
           </div>
-          <Badge className={statusColors[referendum.status] || "bg-gray-500"}>
-            {referendum.status}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {referendum.description || "No description available"}
-        </p>
-      </CardContent>
-      <CardFooter className="flex justify-between text-xs text-muted-foreground">
-        <div>
-          Proposer: {referendum.proposer ? trimAddress(referendum.proposer.id) : "Unknown"}
-        </div>
-        <div>
-          Created: {formatDate(referendum.created)}
-        </div>
-      </CardFooter>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {referendum.description || "No description available"}
+          </p>
+        </CardContent>
+        <CardFooter className="flex justify-between text-xs text-muted-foreground">
+          <div>
+            Proposer: {referendum.proposer ? trimAddress(referendum.proposer.id) : "Unknown"}
+          </div>
+          <div className="flex items-center">
+            <span>{formatDate(referendum.created)}</span>
+            <ArrowUpRight className="ml-1 h-3 w-3" />
+          </div>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 }
 
 export function ReferendumList() {
   const [activeTab, setActiveTab] = useState("ongoing");
-
-  const { data: ongoingReferenda, isLoading: ongoingLoading } = useQuery({
-    queryKey: ["referenda", "ongoing"],
-    queryFn: async () => {
-      const data = await fetchGraphQL(QUERIES.GET_REFERENDA, {
-        status: ["ONGOING"],
-        limit: 10,
-      });
-      return data.referenda;
-    },
+  const [selectedTrack, setSelectedTrack] = useState<string>("all");
+  
+  // Fetch tracks from GraphQL
+  const { 
+    data: tracks = []
+  } = useGovernanceTracks();
+  
+  // Ongoing referenda
+  const { 
+    data: ongoingReferenda = [], 
+    isLoading: ongoingLoading,
+    refetch: refetchOngoing
+  } = useReferenda({
+    status: [ReferendumStatus.Ongoing],
+    track: selectedTrack !== "all" ? parseInt(selectedTrack) : undefined,
+  });
+  
+  // Closed referenda
+  const { 
+    data: closedReferenda = [], 
+    isLoading: closedLoading,
+    refetch: refetchClosed
+  } = useReferenda({
+    status: [
+      ReferendumStatus.Approved, 
+      ReferendumStatus.Rejected, 
+      ReferendumStatus.Cancelled, 
+      ReferendumStatus.TimedOut
+    ],
+    track: selectedTrack !== "all" ? parseInt(selectedTrack) : undefined,
+    enabled: activeTab === "closed"
   });
 
-  const { data: closedReferenda, isLoading: closedLoading } = useQuery({
-    queryKey: ["referenda", "closed"],
-    queryFn: async () => {
-      const data = await fetchGraphQL(QUERIES.GET_REFERENDA, {
-        status: ["APPROVED", "REJECTED", "CANCELLED", "TIMEDOUT"],
-        limit: 10,
-      });
-      return data.referenda;
-    },
-    enabled: activeTab === "closed",
-  });
+  // Refresh data when track selection changes
+  useEffect(() => {
+    refetchOngoing();
+    if (activeTab === "closed") {
+      refetchClosed();
+    }
+  }, [selectedTrack, refetchOngoing, refetchClosed, activeTab]);
 
   // Create a loading skeleton component
   const LoadingSkeleton = () => (
@@ -93,38 +130,59 @@ export function ReferendumList() {
   );
 
   return (
-    <Tabs defaultValue="ongoing" onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
-        <TabsTrigger value="closed">Closed</TabsTrigger>
-      </TabsList>
-      <TabsContent value="ongoing" className="space-y-4 mt-4">
-        {ongoingLoading ? (
-          <LoadingSkeleton />
-        ) : ongoingReferenda?.length > 0 ? (
-          ongoingReferenda.map((referendum) => (
-            <ReferendumCard key={referendum.id} referendum={referendum} />
-          ))
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No ongoing referenda found
-          </div>
-        )}
-      </TabsContent>
-      <TabsContent value="closed" className="space-y-4 mt-4">
-        {closedLoading ? (
-          <LoadingSkeleton />
-        ) : closedReferenda?.length > 0 ? (
-          closedReferenda.map((referendum) => (
-            <ReferendumCard key={referendum.id} referendum={referendum} />
-          ))
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No closed referenda found
-          </div>
-        )}
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-4">
+      {/* Track filter */}
+      <div className="flex justify-end">
+        <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by track" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Tracks</SelectItem>
+            {tracks.map((track) => (
+              <SelectItem key={track.id} value={track.id.toString()}>
+                {track.name || `Track ${track.id}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Tabs defaultValue="ongoing" onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
+          <TabsTrigger value="closed">Closed</TabsTrigger>
+        </TabsList>
+        <TabsContent value="ongoing" className="space-y-4 mt-4">
+          {ongoingLoading ? (
+            <LoadingSkeleton />
+          ) : ongoingReferenda?.length > 0 ? (
+            ongoingReferenda.map((referendum) => (
+              <ReferendumCard key={referendum.id} referendum={referendum} />
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No ongoing referenda found
+              {selectedTrack !== "all" && " for the selected track"}
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="closed" className="space-y-4 mt-4">
+          {closedLoading ? (
+            <LoadingSkeleton />
+          ) : closedReferenda?.length > 0 ? (
+            closedReferenda.map((referendum) => (
+              <ReferendumCard key={referendum.id} referendum={referendum} />
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No closed referenda found
+              {selectedTrack !== "all" && " for the selected track"}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 

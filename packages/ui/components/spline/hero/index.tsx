@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { fontUnbounded } from '@/fonts';
 
 export default function SplineHero() {
-    const { isLoading, setIsLoading } = useLoading();
+    const { setIsLoading } = useLoading();
     const splineContainerRef = useRef<HTMLDivElement>(null);
     const [splineLoaded, setSplineLoaded] = useState(false);
     

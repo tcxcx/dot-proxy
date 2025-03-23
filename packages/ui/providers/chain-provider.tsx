@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient, PolkadotClient } from "polkadot-api";
+import { createClient, PolkadotClient, CompatibilityToken } from "polkadot-api";
 import {
   getWsProvider,
   StatusChange,
@@ -8,12 +8,23 @@ import {
 } from "polkadot-api/ws-provider/web";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import {
   chainConfig,
   type ChainConfig,
   type AvailableApis,
 } from "@/papi-config";
+
+// Chain info interface similar to the original hook
+interface ChainInfoHuman {
+  ss58Format: number;
+  tokenDecimals: number;
+  tokenSymbol: string;
+  isEthereum: boolean;
+}
+
+// Ethereum chains to check against
+const ethereumChains = ["Moonbeam", "Moonriver", "Moonbase Alpha", "Astar", "Shiden"];
 
 interface ChainProviderType {
   connectionStatus: StatusChange | undefined;
@@ -22,6 +33,9 @@ interface ChainProviderType {
   client: PolkadotClient | null;
   wsProvider: WsJsonRpcProvider | null;
   api: AvailableApis | null;
+  compatibilityToken: CompatibilityToken | undefined;
+  chainInfo: ChainInfoHuman | undefined;
+  resetApi: () => void;
 }
 
 const ChainContext = createContext<ChainProviderType | undefined>(undefined);
@@ -33,11 +47,23 @@ export function ChainProvider({ children }: { children: React.ReactNode }) {
   );
   const [activeApi, setActiveApi] = useState<AvailableApis | null>(null);
   const clientRef = useRef<PolkadotClient | null>(null);
+  const [compatibilityToken, setCompatibilityToken] = useState<CompatibilityToken>();
+  const [chainInfo, setChainInfo] = useState<ChainInfoHuman>();
 
   const [connectionStatus, setConnectionStatus] = useState<
     StatusChange | undefined
   >(undefined);
 
+  // Reset API function
+  const resetApi = useCallback(() => {
+    setActiveApi(null);
+    clientRef.current = null;
+    wsProviderRef.current = null;
+    setCompatibilityToken(undefined);
+    setChainInfo(undefined);
+  }, []);
+
+  // Connection setup
   useEffect(() => {
     if (!activeChain) {
       console.error(
@@ -71,6 +97,59 @@ export function ChainProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeChain]);
 
+  // Fetch and set compatibility token when API changes
+  useEffect(() => {
+    if (!activeApi) return;
+    
+    const fetchCompatibilityToken = async () => {
+      try {
+        // @ts-ignore - Using compatibilityToken like in the example
+        const token = await activeApi.compatibilityToken;
+        setCompatibilityToken(token);
+      } catch (error) {
+        console.error("Error getting compatibility token:", error);
+      }
+    };
+
+    fetchCompatibilityToken();
+  }, [activeApi]);
+
+  // Fetch chain info when client and token are available
+  useEffect(() => {
+    if (!clientRef.current || !activeApi || !compatibilityToken) return;
+
+    const fetchChainInfo = async () => {
+      try {
+        const { properties, name } = await clientRef.current!.getChainSpecData();
+        if (!properties) return;
+
+        // @ts-ignore - Accessing SS58Prefix like in the example
+        const ss58prefix = activeApi.constants.System.SS58Prefix(compatibilityToken);
+        
+        const tokenDecimals = Array.isArray(properties?.tokenDecimals)
+          ? properties?.tokenDecimals[0]
+          : properties?.tokenDecimals;
+
+        const tokenSymbol = Array.isArray(properties?.tokenSymbol)
+          ? properties?.tokenSymbol[0]
+          : properties?.tokenSymbol;
+
+        const isEthereum = ethereumChains.includes(name);
+
+        setChainInfo({
+          ss58Format: Number(ss58prefix) || 0,
+          tokenDecimals: Number(tokenDecimals) || 0,
+          tokenSymbol: tokenSymbol || '',
+          isEthereum
+        });
+      } catch (error) {
+        console.error("Error fetching chain info:", error);
+      }
+    };
+
+    fetchChainInfo();
+  }, [clientRef.current, activeApi, compatibilityToken]);
+
   return (
     <ChainContext.Provider
       value={{
@@ -80,6 +159,9 @@ export function ChainProvider({ children }: { children: React.ReactNode }) {
         client: clientRef.current,
         activeChain,
         setActiveChain,
+        compatibilityToken,
+        chainInfo,
+        resetApi,
       }}
     >
       {children}

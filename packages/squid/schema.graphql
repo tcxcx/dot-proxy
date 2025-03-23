@@ -49,6 +49,20 @@ type Referendum @entity {
   preimageHash: String
   blockNumber: Int! @index
   extrinsicHash: String
+  governanceTrack: GovernanceTrack @derivedFrom(field: "referenda")
+}
+
+type GovernanceTrack @entity {
+  "Track ID"
+  id: ID!
+  name: String!
+  description: String
+  minApproval: Float
+  minSupport: Float
+  decisionPeriod: Int
+  preparePeriod: Int
+  confirmPeriod: Int
+  referenda: [Referendum!] @derivedFrom(field: "track")
 }
 
 type Vote @entity {

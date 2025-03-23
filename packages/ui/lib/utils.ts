@@ -176,6 +176,54 @@ export const QUERIES = {
     }
   `,
 
+  // Get governance tracks
+  GET_GOVERNANCE_TRACKS: `
+    query GetGovernanceTracks {
+      governanceTracks {
+        id
+        name
+        description
+        minApproval
+        minSupport
+        decisionPeriod
+        preparePeriod
+        confirmPeriod
+      }
+    }
+  `,
+
+  // Get all referenda by track
+  GET_REFERENDA_BY_TRACK: `
+    query GetReferendaByTrack($track: Int!, $status: [ReferendumStatus!], $limit: Int, $offset: Int) {
+      referenda(
+        orderBy: index_DESC
+        where: { track_eq: $track, status_in: $status }
+        limit: $limit
+        offset: $offset
+      ) {
+        id
+        index
+        track
+        title
+        description
+        proposer {
+          id
+        }
+        status
+        created
+        votingStart
+        votingEnd
+        executed
+        executedAt
+        tally {
+          ayes
+          nays
+          support
+        }
+      }
+    }
+  `,
+
   // Get all proxies for an account
   GET_ACCOUNT_PROXIES: `
     query GetAccountProxies($accountId: String!) {

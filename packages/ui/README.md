@@ -104,3 +104,67 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built using the [Polkadot Next.js Starter](https://github.com/niklasp/polkadot-nextjs-starter)
 - Inspired by [Multix](https://github.com/Tbaut/Multix) multisignature and proxy management tool
 - Polkadot Network and Parity Technologies
+
+# Polkadot Governance Proxy App
+
+This application allows users to manage proxy accounts for Polkadot governance and vote on referenda using those proxies. The implementation leverages the Polkadot API to directly connect to the chain.
+
+## Features
+
+- Connect to Polkadot network using Polkadot extension
+- View and manage governance proxy accounts
+- Browse ongoing and closed referenda
+- Filter referenda by governance track
+- Vote on referenda using proxy accounts with conviction voting
+
+## Technical Implementation
+
+### API Connection
+
+The application connects directly to Polkadot network nodes using:
+
+- `polkadot-api` for API connectivity
+- Direct use of the chain's RPC endpoints 
+- Custom `useApi` hook that provides chain information and API access
+
+### Governance Tracks
+
+OpenGov referenda are organized by governance tracks, which determine the properties and requirements for each referendum. The application:
+
+1. Fetches track information from the chain
+2. Displays track information for each referendum
+3. Allows filtering referenda by track
+4. Ensures votes are cast on the correct track
+
+### Referenda Handling
+
+Referenda are fetched and processed through:
+
+1. `useReferenda` hook - fetches multiple referenda with filtering options
+2. `useReferendum` hook - fetches a single referendum with detailed information
+3. `useGovernanceTracks` hook - fetches governance track information
+
+### Proxy Voting
+
+Voting through proxies is implemented via:
+
+1. The Polkadot Governance proxy mechanism
+2. `ConvictionVoting` module for applying voting conviction
+3. Transaction handling with appropriate error fallbacks
+4. Mock implementations for development where needed
+
+## Development
+
+The application uses mock data by default, but is structured to work with the real Polkadot API. The commented code in the hooks demonstrates how to transition from mock data to real API data.
+
+## Configuration
+
+The chain connection can be configured in the `papi-config.ts` file, which specifies:
+
+- Chain name
+- API descriptors
+- RPC endpoints
+
+## Contributing
+
+To contribute to this project, please ensure all implementations use the direct API approach rather than GraphQL or other intermediary services.

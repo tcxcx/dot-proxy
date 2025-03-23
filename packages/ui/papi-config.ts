@@ -1,9 +1,7 @@
 "use client";
 
+import { dot } from "@polkadot-api/descriptors";
 import type { TypedApi } from "polkadot-api";
-
-// Mock dot descriptors to avoid build errors
-const dot = {};
 
 export interface ChainConfig {
   key: string;
@@ -13,7 +11,6 @@ export interface ChainConfig {
   explorerUrl?: string;
 }
 
-// @ts-ignore - Intentionally empty interface
 export type AvailableApis = TypedApi<typeof dot>;
 
 export const chainConfig: ChainConfig[] = [

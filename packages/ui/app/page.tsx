@@ -36,6 +36,7 @@ export default async function Home() {
       {/* Guides */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <LedgerGuide />
+        
         <SelfHostingGuide />
       </div>
     </main>

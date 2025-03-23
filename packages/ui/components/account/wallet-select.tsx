@@ -9,13 +9,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ArrowLeft, LogOut, Wallet, XIcon } from "lucide-react";
+import { ArrowLeft, AlertCircle, LogOut, Wallet, XIcon } from "lucide-react";
 import { usePolkadotExtension } from "@/providers/polkadot-extension-provider";
 import { cn, trimAddress } from "@/lib/utils";
 import { Identicon } from "@polkadot/react-identicon";
 import { allSubstrateWallets, SubstrateWalletPlatform } from "./wallets";
 import { isMobile } from "@/lib/is-mobile";
 import Image from "next/image";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState } from "react";
 
 export function WalletSelect() {
   const {
@@ -28,8 +30,12 @@ export function WalletSelect() {
     initiateConnection,
     disconnect,
     isAccountsLoading,
+    connectionError,
   } = usePolkadotExtension();
+  
+  const [isOpen, setIsOpen] = useState(false);
 
+  // Filter wallets by platform (browser/mobile)
   const systemWallets = allSubstrateWallets
     .filter((wallet) =>
       isMobile()
@@ -45,23 +51,68 @@ export function WalletSelect() {
         : 0
     );
 
+  const handleDialogOpen = (open: boolean) => {
+    setIsOpen(open);
+    if (open) {
+      initiateConnection();
+    }
+  };
+
+  const getWalletStatusMessage = (walletId: string) => {
+    if (installedExtensions.includes(walletId)) {
+      return "Detected";
+    }
+    
+    if (isMobile()) {
+      return "Open";
+    }
+    
+    return "Install";
+  };
+
+  const getExtensionHelpMessage = () => {
+    if (!selectedExtensionName) return null;
+    
+    const wallet = allSubstrateWallets.find(w => w.id === selectedExtensionName);
+    if (!wallet) return null;
+    
+    if (accounts.length === 0 && !isAccountsLoading) {
+      return (
+        <Alert variant="warning" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-medium">No accounts found in {wallet.name}</p>
+            <ul className="list-disc pl-5 text-sm mt-2">
+              <li>Make sure you have created an account in {wallet.name}</li>
+              <li>Ensure you've authorized this site in your extension settings</li>
+              <li>Try refreshing the page</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
+    return null;
+  };
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={handleDialogOpen}>
       <DialogTrigger asChild>
         <Button
           variant="default"
           onClick={initiateConnection}
           className="transition-[min-width] duration-300 min-w-[100px]"
         >
-          <Wallet className="w-4 h-4" />
+          <Wallet className="w-4 h-4 mr-2" />
           <span className="max-w-[100px] truncate">
-            {selectedAccount?.name}
+            {selectedAccount?.name || "Connect"}
           </span>
           {selectedAccount?.address && (
             <Identicon
               value={selectedAccount?.address}
               size={24}
               theme="polkadot"
+              className="ml-2"
             />
           )}
         </Button>
@@ -101,6 +152,17 @@ export function WalletSelect() {
         </DialogHeader>
 
         <div className="p-4 pt-0 overflow-auto max-h-[500px] min-h-[100px] transition-[max-height,opacity] duration-500">
+          {connectionError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {connectionError}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {getExtensionHelpMessage()}
+          
           <div
             className={cn(
               "flex flex-col items-start gap-2 transition-[max-height,opacity]",
@@ -118,7 +180,18 @@ export function WalletSelect() {
                   if (installedExtensions.includes(wallet.id)) {
                     setSelectedExtensionName(wallet.id);
                   } else {
-                    window.open(wallet.urls.website, "_blank");
+                    // For browser extensions, open installation URL
+                    if (!isMobile()) {
+                      window.open(wallet.urls.chromeExtension || wallet.urls.website, "_blank");
+                    } 
+                    // For mobile apps, try to open the app
+                    else {
+                      if (wallet.platforms.includes(SubstrateWalletPlatform.Android)) {
+                        window.open(wallet.urls.androidApp || wallet.urls.website, "_blank");
+                      } else if (wallet.platforms.includes(SubstrateWalletPlatform.iOS)) {
+                        window.open(wallet.urls.iosApp || wallet.urls.website, "_blank");
+                      }
+                    }
                   }
                 }}
               >
@@ -132,10 +205,15 @@ export function WalletSelect() {
                   />
                   <span className="font-bold">{wallet.name}</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">
-                  {installedExtensions.includes(wallet.id)
-                    ? "Detected"
-                    : "Install"}
+                <span 
+                  className={cn(
+                    "text-[10px]", 
+                    installedExtensions.includes(wallet.id) 
+                      ? "text-green-600" 
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {getWalletStatusMessage(wallet.id)}
                 </span>
               </Button>
             ))}
@@ -148,7 +226,12 @@ export function WalletSelect() {
                 : "opacity-100 max-h-[9999px] duration-500 delay-200"
             )}
           >
-            {accounts.length > 0 ? (
+            {isAccountsLoading ? (
+              <div className="w-full flex justify-center items-center py-4">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                <span className="ml-3">Loading accounts...</span>
+              </div>
+            ) : accounts.length > 0 ? (
               accounts.map((account, index) => (
                 <DialogClose asChild key={index}>
                   <Button
@@ -177,10 +260,18 @@ export function WalletSelect() {
                 </DialogClose>
               ))
             ) : (
-              <div>
-                {isAccountsLoading
-                  ? "Loading accounts..."
-                  : "Please allow the site to access your extension accounts"}
+              <div className="text-center py-4 px-2">
+                <p className="font-medium text-orange-500 mb-2">
+                  No accounts found in your wallet
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Please make sure you have:
+                </p>
+                <ul className="list-disc text-sm text-left ml-6 mt-2 text-muted-foreground">
+                  <li>Created accounts in your wallet</li>
+                  <li>Given this site permission to access your accounts</li>
+                  <li>Unlocked your wallet extension</li>
+                </ul>
               </div>
             )}
           </div>

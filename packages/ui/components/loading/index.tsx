@@ -93,11 +93,7 @@ export default function LoadingScreen({ isLoading }: LoadingScreenProps) {
           {/* "DOT PROXY GOV" text with the Unbounded font */}
           <motion.div 
             className="flex flex-col items-center"
-          >
-            <div className="text-3xl md:text-4xl text-white font-unbounded font-bold tracking-wider mb-6">
-              DOT PROXY GOV
-            </div>
-            
+          >        
             {/* Loading bar */}
             <div className="w-64 h-1.5 bg-gray-800 rounded-full overflow-hidden">
               <motion.div

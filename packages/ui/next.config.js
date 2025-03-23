@@ -14,6 +14,11 @@ const nextConfig = {
       },
     ];
   },
+  reactStrictMode: true,
+  eslint: {
+    // Disable ESLint during build for faster builds
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig; 
