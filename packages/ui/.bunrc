@@ -1,0 +1,6 @@
+{
+  "install": {
+    "frozen": false,
+    "trustedDependencies": ["@polkadot-api/descriptors"]
+  }
+} 
